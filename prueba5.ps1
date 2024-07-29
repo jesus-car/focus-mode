@@ -1,7 +1,3 @@
-
-## Nota: FALTA AGREGAR LA ELIMINACION DE LAS ANTERIORES VARIABLES CUANDO DE -N 5 BAJAS A -N 4 , ETC
-## HACERLO CON COMENTARIOS, USANDO EL $DOMAINCOUNT Y CREO QUE USANDO LOS DOS ARCHIVOS TEMP
-
 param (
     [int]$n,
     [string[]]$a
@@ -52,7 +48,9 @@ function Modify-File {
                 $lines = $lines | Where-Object { $_ -ne $twitch }
                 # Eliminar $fb si existe
                 $lines = $lines | Where-Object { $_ -ne $fb }
-                # Eliminar $newVar si existe 0
+                # Eliminar $xv si existe
+                $lines = $lines | Where-Object { $_ -ne $xv }
+                # Eliminar $newVar si existe
 
                 Temp-File $lines
 
@@ -68,6 +66,9 @@ function Modify-File {
                 $lines = $lines | Where-Object { $_ -ne $twitch }
                 # Eliminar $fb si existe
                 $lines = $lines | Where-Object { $_ -ne $fb }
+                # Eliminar $xv si existe
+                $lines = $lines | Where-Object { $_ -ne $xv }
+                # Eliminar $newVar si existe
                 # Agregar $insta si no existe
                 if ($lines -notcontains $insta) {
                     $lines += "$insta"
@@ -84,6 +85,9 @@ function Modify-File {
                 $lines = Get-Content -Path $filePath
                 # Eliminar $fb si existe
                 $lines = $lines | Where-Object { $_ -ne $fb }
+                # Eliminar $xv si existe
+                $lines = $lines | Where-Object { $_ -ne $xv }
+                # Eliminar $newVar si existe
                 # Agregar $insta si no existe
                 if ($lines -notcontains $insta) {
                     $lines += "$insta"
@@ -102,6 +106,9 @@ function Modify-File {
         3 {
             if (Test-Path -Path $filePath) {
                 $lines = Get-Content -Path $filePath
+                # Eliminar $xv si existe
+                $lines = $lines | Where-Object { $_ -ne $xv }
+                # Eliminar $newVar si existe
                 # Agregar $insta si no existe
                 if ($lines -notcontains $insta) {
                     $lines += "$insta"
@@ -125,6 +132,7 @@ function Modify-File {
         4 {
             if (Test-Path -Path $filePath) {
                 $lines = Get-Content -Path $filePath
+                # Eliminar $newVar si existe
                 # Agregar $insta si no existe
                 if ($lines -notcontains $insta) {
                     $lines += "$insta"
@@ -162,9 +170,9 @@ function Modify-File {
 }
 
 
-function Remove-Page{
+function Remove-Domain{
     param(
-        [string]$page
+        [string]$alias
     )
 
     $filePath = "F:\workspace\scripts\archivo.txt"
@@ -258,6 +266,7 @@ function Update-Script{
     $newDomain = "        $domainCount {
             if (Test-Path -Path `$filePath) {
                 `$lines = Get-Content -Path `$filePath
+                # Eliminar `$newVar si existe
                 # Agregar `$insta si no existe
                 if (`$lines -notcontains `$insta) {
                     `$lines += `"`$insta`"
@@ -300,49 +309,35 @@ function Update-Script{
                 }
                 # Next modification here"
 
-    $found = $false
-    $scriptContent = $scriptContent | ForEach-Object{
-        if (-not $found -and $_.Trim() -eq $addDomain) {
-            # Reemplazar la linea con el contenido del array
-            $found = $true
-            $newDomain
-        } else {
-            # Mantener la linea sin cambios
-            $_
-        }
-    }
-    
-    $found = $false
-    $scriptContent = $scriptContent | ForEach-Object{
-        if (-not $found -and $_.Trim() -eq $addParameter) {
-            $found = $true
-            $newParameter
-        } else {
-            # Mantener la linea sin cambios
-            $_
-        }
-    }
+    $replaceDeletePivot = '# Eliminar $newVar si existe'
+    $newReplaceDelete = "                # Eliminar `$$varName si existe
+                `$lines = `$lines | Where-Object { `$_ -ne `$$varName }
+                # Eliminar `$newVar si existe"
 
-    $found = $false
-    $scriptContent = $scriptContent | ForEach-Object{
-        if (-not $found -and $_.Trim() -eq $addNextModification) {
-            $found = $true
-            $newAddModification
-        } else {
-            # Mantener la linea sin cambios
-            $_
-        }
-    }
-
-    $found = $false
+    $found1 = $false
     $found2 = $false
+    $found3 = $false
+    $found4 = $false
+    $found5 = $false
+
     $scriptContent = $scriptContent | ForEach-Object{
-        if (-not $found -and $_.Trim() -eq $oldDomainCount) {
-            $found = $true
+        if (-not $found1 -and $_.Trim() -eq $oldDomainCount) {
+            $found1 = $true
             $newDomainCount
         } elseif (-not $found2 -and $_.Trim() -eq $oldValueDomainCount) {
             $found2 = $true
             $newValueDomainCount
+        } elseif (-not $found3 -and $_.Trim() -eq $addNextModification) {
+            $found3 = $true
+            $newAddModification
+        } elseif (-not $found4 -and $_.Trim() -eq $addParameter) {
+            $found4 = $true
+            $newParameter
+        } elseif (-not $found5 -and $_.Trim() -eq $addDomain) {
+            $found5 = $true
+            $newDomain
+        } elseif ($_.Trim() -eq $replaceDeletePivot) {
+            $newReplaceDelete
         } else {
             # Mantener la linea sin cambios
             $_
@@ -361,4 +356,3 @@ if ($PSBoundParameters.ContainsKey('n')) {
 if ($PSBoundParameters.ContainsKey('a') -and $a.Length -eq 2) {
     Update-Script -a $a
 }
-
