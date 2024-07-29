@@ -1,26 +1,56 @@
-# FALTA PARAMETRO PARA QUE MUESTRE LOS DOMINIOS DISPONIBLES
-# FALTA PARAMETRO PARA ELIMINAR EL ULTIMO DOMINIO AGREGADO
-# FALTA LO MAS COMPLICADO, MODULARLO PARA PODER SELECCIONAR EL DOMINIO QUE QUIERO ELIMINAR
+# FALTA ELIMINAR EL ULTIMO DOMINIO
+# VER EL NIVEL ACTUAL
 
 param (
+    [switch]$s,
     [int]$n,
     [string[]]$a
 )
+
+# Verificar si el script se está ejecutando como administrador
+function Test-Administrator {
+    $currentUser = New-Object Security.Principal.WindowsPrincipal([Security.Principal.WindowsIdentity]::GetCurrent())
+    return $currentUser.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
+}
+
+if (-not (Test-Administrator)) {
+    if ($PSBoundParameters.ContainsKey('n')) {
+        $newProcess = Start-Process powershell.exe -ArgumentList "-File `"$PSCommandPath`" -n $n" -Verb RunAs
+        exit
+    }
+}
 
 $domainCount = 
                 5
 
 $domainCountPivot = $domainCount + 1
 
-# Define los textos que deseas agregar
+# Define los dominios a bloquear
 $fb = "127.0.0.1	www.facebook.com"
 $twitch = "127.0.0.1	www.twitch.tv"
 $insta = "127.0.0.1	www.instagram.com"
-$xv = "127.0.0.1    www.xvideos.com"
+$xv = "127.0.0.1       www.xvideos.com"
         # New variable here
     
+# Arrays de dominios
+$domains = @("www.facebook.com", "www.twitch.tv", "www.instagram.com", "www.xvideos.com"
+# New domain here
+)
 
-# Crea un archivo temporal y lo reemplaza por el original
+# Tags de los dominios
+$tags = @("fb", "twitch", "insta", "xv"
+# New tag here
+)
+
+if ($s){
+    Write-Output "Nivel`t`tTag`t`tDominio"
+    Write-Output "-----`t`t---`t`t-------"
+    for($i=0; $i -lt $domains.Length; $i++) {
+        Write-Output "  $($i+1)  `t`t$($tags[$i]) `t`t$($domains[$i])"
+    }
+}
+
+# Crea un archivo temporal de hosts y lo reemplaza por el original
 function Temp-File{
     param(
         [string[]]$lines
@@ -37,15 +67,14 @@ function Modify-File {
     )
 
     # Define la ruta del archivo de texto
-    $filePath = "F:\workspace\scripts\archivo.txt"
+    $filePath = "C:\Windows\System32\drivers\etc\hosts"
 
     switch ($n) {
-        0 
-        {
+        99 {
             # No hacer nada, restaurar el archivo a su estado original
             if (Test-Path -Path $filePath) {
 
-                $lines = Get-Content -Path $filePath
+                [string[]]$lines = Get-Content -Path $filePath
                 # Eliminar $insta si existe
                 $lines = $lines | Where-Object { $_ -ne $insta }
                 # Eliminar $twitch si existe
@@ -65,7 +94,7 @@ function Modify-File {
         }
         1 {
             if (Test-Path -Path $filePath) {
-                $lines = Get-Content -Path $filePath
+                [string[]]$lines = Get-Content -Path $filePath
                 # Eliminar $twitch si existe
                 $lines = $lines | Where-Object { $_ -ne $twitch }
                 # Eliminar $fb si existe
@@ -86,7 +115,7 @@ function Modify-File {
         }
         2 {
             if (Test-Path -Path $filePath) {
-                $lines = Get-Content -Path $filePath
+                [string[]]$lines = Get-Content -Path $filePath
                 # Eliminar $fb si existe
                 $lines = $lines | Where-Object { $_ -ne $fb }
                 # Eliminar $xv si existe
@@ -109,7 +138,7 @@ function Modify-File {
         }
         3 {
             if (Test-Path -Path $filePath) {
-                $lines = Get-Content -Path $filePath
+                [string[]]$lines = Get-Content -Path $filePath
                 # Eliminar $xv si existe
                 $lines = $lines | Where-Object { $_ -ne $xv }
                 # Eliminar $newVar si existe
@@ -135,7 +164,7 @@ function Modify-File {
 
         4 {
             if (Test-Path -Path $filePath) {
-                $lines = Get-Content -Path $filePath
+                [string[]]$lines = Get-Content -Path $filePath
                 # Eliminar $newVar si existe
                 # Agregar $insta si no existe
                 if ($lines -notcontains $insta) {
@@ -174,10 +203,7 @@ function Modify-File {
 }
 
 
-function Remove-Domain{
-    param(
-        [string]$alias
-    )
+function Remove-Last-Domain{
 
     $filePath = "F:\workspace\scripts\archivo.txt"
 
@@ -269,7 +295,7 @@ function Update-Script{
 
     $newDomain = "        $domainCount {
             if (Test-Path -Path `$filePath) {
-                `$lines = Get-Content -Path `$filePath
+                [string[]]`$lines = Get-Content -Path `$filePath
                 # Eliminar `$newVar si existe
                 # Agregar `$insta si no existe
                 if (`$lines -notcontains `$insta) {
@@ -304,7 +330,7 @@ function Update-Script{
 
         # New code here"
 
-    $newParameter = "`$$varName = `"127.0.0.1    $domain`"
+    $newParameter = "`$$varName = `"127.0.0.1       $domain`"
         # New variable here"
 
     $newAddModification = "                # Agregar ``$`$varName si no existe
@@ -317,6 +343,14 @@ function Update-Script{
     $newReplaceDelete = "                # Eliminar `$$varName si existe
                 `$lines = `$lines | Where-Object { `$_ -ne `$$varName }
                 # Eliminar `$newVar si existe"
+
+    $replaceDomainComent = "# New domain here"
+    $newDomainElement = "        , `"$domain`"
+        # New domain here"
+
+    $replaceTagComent = "# New tag here"
+    $newTagElement = "        , `"$varName`"
+        # New tag here"
 
     $found1 = $false
     $found2 = $false
@@ -342,6 +376,10 @@ function Update-Script{
             $newDomain
         } elseif ($_.Trim() -eq $replaceDeletePivot) {
             $newReplaceDelete
+        } elseif ($_.Trim() -eq $replaceDomainComent) {
+            $newDomainElement
+        } elseif ($_.Trim() -eq $replaceTagComent) {
+            $newTagElement
         } else {
             # Mantener la linea sin cambios
             $_
@@ -353,10 +391,10 @@ function Update-Script{
     Modify-Temp
 }
 
-if ($PSBoundParameters.ContainsKey('n')) {
+if($n){
     Modify-File -n $n
 }
 
-if ($PSBoundParameters.ContainsKey('a') -and $a.Length -eq 2) {
+if($a){
     Update-Script -a $a
 }
